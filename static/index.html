@@ -1,0 +1,365 @@
+<!DOCTYPE html> <!-- Document type: this page is HTML5. -->
+<html lang="en"> <!-- Root element: English language page. -->
+<head> <!-- Head: metadata and styles live here. -->
+<meta charset="utf-8"> <!-- Encoding: UTF-8 so punctuation and symbols render correctly. -->
+<meta name="viewport" content="width=device-width, initial-scale=1"> <!-- Viewport: the layout adapts to phone screens. -->
+<title>SkinSense Agent — AI skin analysis, a routine that listens</title> <!-- Title: shown in the browser tab and search results. -->
+<style> /* Style block: the whole visual design lives in this one file, no external assets. */
+:root { --bg: #faf7f3; --card: #ffffff; --ink: #2c2620; --muted: #7a6f63; --line: #e8ded2; --accent: #b0603f; --accent-soft: #f3e3d8; --sage: #5f7161; --amber-bg: #fdf3d8; --amber-line: #e5cf8a; --amber-ink: #7a5c14; --radius: 16px; } /* Palette: warm porcelain background, terracotta accent, sage secondary, amber reserved for the SAMPLE warning. */
+* { box-sizing: border-box; } /* Sizing: padding counts inside widths, which keeps the grid predictable. */
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif; line-height: 1.55; } /* Body: warm background, humanist sans for reading text. */
+.wrap { max-width: 920px; margin: 0 auto; padding: 32px 20px 64px; } /* Wrap: one centered column, generous breathing room. */
+header.hero { text-align: center; padding: 28px 0 8px; } /* Hero: the brand block sits centered at the top. */
+.hero h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; font-size: 2.6rem; margin: 0 0 6px; letter-spacing: 0.01em; } /* Hero title: serif display type is the design signature. */
+.hero p.tagline { color: var(--muted); font-size: 1.05rem; margin: 0 auto; max-width: 560px; } /* Tagline: quiet gray, narrow measure for readability. */
+.badge { display: inline-block; margin-top: 14px; padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--line); background: var(--card); color: var(--sage); } /* Badge: the live/sample mode pill under the tagline. */
+.badge.live { color: #2e6b34; border-color: #bcd8be; background: #eef7ee; } /* Badge live variant: green when a real key is configured. */
+.banner { display: none; margin: 20px 0 0; padding: 12px 16px; border-radius: 12px; background: var(--amber-bg); border: 1px solid var(--amber-line); color: var(--amber-ink); font-size: 0.92rem; } /* Banner: the SAMPLE warning strip, hidden until sample data is on screen. */
+.banner.show { display: block; } /* Banner visible state: toggled by JavaScript. */
+section.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; margin-top: 24px; box-shadow: 0 6px 24px rgba(60, 42, 25, 0.05); } /* Card: each step of the loop is one soft white panel. */
+section.card h2 { font-family: Georgia, serif; font-weight: 600; font-size: 1.35rem; margin: 0 0 4px; } /* Card heading: serif, matching the hero. */
+section.card p.hint { color: var(--muted); margin: 0 0 16px; font-size: 0.95rem; } /* Card hint: the small gray instruction line under each heading. */
+.step-num { display: inline-block; width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 0.9rem; margin-right: 8px; vertical-align: 2px; } /* Step number: a small terracotta circle before each heading. */
+textarea { width: 100%; min-height: 92px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; resize: vertical; background: #fffdfb; } /* Textarea: the concern input, warm white with a soft border. */
+textarea:focus, input[type="text"]:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); } /* Focus state: a visible terracotta ring for accessibility. */
+.row { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; } /* Row: flexible horizontal grouping that wraps on small screens. */
+.photo-box { flex: 0 0 180px; } /* Photo box: fixed-width column for the upload control and preview. */
+.photo-box img { width: 180px; height: 180px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); display: none; } /* Photo preview: square crop, hidden until a photo is chosen. */
+input[type="file"] { font-size: 0.88rem; color: var(--muted); } /* File input: quiet styling, the label does the talking. */
+button.primary { background: var(--accent); color: #fff; border: none; border-radius: 999px; padding: 12px 26px; font-size: 1rem; font-weight: 600; cursor: pointer; } /* Primary button: the terracotta pill used for Analyze and Refine. */
+button.primary:hover { background: #9c5334; } /* Primary hover: a slightly deeper terracotta. */
+button.primary:disabled { background: #cbb49f; cursor: wait; } /* Primary disabled: muted while a request is in flight. */
+button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 7px 16px; font-size: 0.88rem; font-weight: 600; cursor: pointer; } /* Ghost button: the outlined try-on action on tint cards. */
+button.ghost:hover { background: var(--accent-soft); } /* Ghost hover: a soft tint fill. */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; } /* Chips: the one-tap feedback shortcuts above the refine box. */
+.chip { border: 1px solid var(--line); background: #fffdfb; border-radius: 999px; padding: 6px 14px; font-size: 0.88rem; cursor: pointer; color: var(--ink); } /* Chip: a pill that fills the feedback box with one tap. */
+.chip:hover { border-color: var(--accent); color: var(--accent); } /* Chip hover: terracotta outline signals interactivity. */
+.scores { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 28px; margin-top: 8px; } /* Scores grid: two columns of score bars on wide screens. */
+@media (max-width: 640px) { .scores { grid-template-columns: 1fr; } } /* Scores on phones: a single column. */
+.score-line { display: flex; align-items: center; gap: 10px; font-size: 0.92rem; } /* Score line: label, bar, and number on one row. */
+.score-line .label { flex: 0 0 92px; color: var(--ink); font-weight: 600; } /* Score label: fixed width so bars align. */
+.score-line .bar { flex: 1; height: 8px; border-radius: 999px; background: #efe7dc; overflow: hidden; } /* Score track: the pale rail behind the fill. */
+.score-line .fill { height: 100%; border-radius: 999px; background: var(--sage); transition: width 0.7s ease; } /* Score fill: sage green, animates to its width. */
+.score-line.weak .fill { background: var(--accent); } /* Weak score fill: terracotta flags the areas the routine targets. */
+.score-line .value { flex: 0 0 44px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; } /* Score value: right-aligned tabular numbers. */
+.overall { font-family: Georgia, serif; font-size: 1.15rem; margin: 4px 0 10px; } /* Overall line: the serif summary sentence above the bars. */
+.slots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } /* Slots grid: routine cards in two columns. */
+@media (max-width: 640px) { .slots { grid-template-columns: 1fr; } } /* Slots on phones: a single column. */
+.slot { border: 1px solid var(--line); border-radius: 14px; padding: 16px; background: #fffdfb; } /* Slot card: one routine step with its product. */
+.slot .when { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent); } /* Slot when: the small AM / PM / Finish eyebrow label. */
+.slot h3 { margin: 6px 0 2px; font-size: 1.02rem; } /* Slot title: the product name. */
+.slot .brand { color: var(--muted); font-size: 0.85rem; } /* Slot brand: quiet gray under the name. */
+.slot p { font-size: 0.92rem; margin: 8px 0; } /* Slot text: blurb and reason paragraphs. */
+.slot .why { color: var(--sage); font-size: 0.88rem; } /* Slot why: the agent's reason, in sage to read as advice. */
+.slot .meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; } /* Slot meta row: price on the left, try-on button on the right. */
+.slot .price { font-weight: 700; } /* Slot price: bold shelf price. */
+.total { margin-top: 18px; font-size: 1rem; display: flex; justify-content: space-between; border-top: 1px dashed var(--line); padding-top: 14px; } /* Total row: the dashed divider and basket total. */
+input[type="text"] { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; background: #fffdfb; } /* Text input: the feedback box matches the textarea styling. */
+ul.changes { margin: 12px 0 0; padding-left: 20px; } /* Changes list: what the last refine actually did. */
+ul.changes li { margin: 4px 0; } /* Change item: a little air between entries. */
+.notice { font-size: 0.9rem; color: var(--muted); } /* Notice text: quiet gray for status and try-on messages. */
+.hidden { display: none; } /* Utility: sections stay hidden until the loop reaches them. */
+footer { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 36px; } /* Footer: the small print line at the bottom. */
+</style> <!-- End of the style block. -->
+</head> <!-- End of the head. -->
+<body> <!-- Body: the visible page starts here. -->
+<div class="wrap"> <!-- Wrap: the centered content column. -->
+<header class="hero"> <!-- Hero: brand, tagline, and the mode badge. -->
+<h1>SkinSense Agent</h1> <!-- Brand title: serif display type. -->
+<p class="tagline">Tell it what your skin is doing. It reads a real AI skin analysis, builds a routine around your weakest areas, and listens when you push back.</p> <!-- Tagline: the one-sentence value case. -->
+<span class="badge" id="mode-badge">Checking mode…</span> <!-- Mode badge: JavaScript fills this from /api/status (live-ready or SAMPLE). -->
+</header> <!-- End of the hero. -->
+<div class="banner" id="sample-banner" role="alert"></div> <!-- SAMPLE banner: hidden until sample data renders; JavaScript fills and shows it. -->
+<section class="card" id="step-describe"> <!-- Step 1 card: describe the concern and optionally add a photo. -->
+<h2><span class="step-num">1</span>Describe your skin</h2> <!-- Step 1 heading. -->
+<p class="hint">In your own words — “my cheeks get red and tight by afternoon” beats a diagnosis. Add a front-facing selfie to run the real YouCam Skin AI analysis; text alone gives a labeled SAMPLE preview.</p> <!-- Step 1 instructions, honest about what the photo unlocks. -->
+<div class="row"> <!-- Row: photo column beside the text column. -->
+<div class="photo-box"> <!-- Photo column: upload control plus preview. -->
+<label for="photo-input"><strong>Your photo</strong> (optional)</label> <!-- Photo label: explains the control. -->
+<input type="file" id="photo-input" accept="image/png, image/jpeg"> <!-- File input: PNG or JPEG, matching the API's supported formats. -->
+<img id="photo-preview" alt="Preview of the photo you chose"> <!-- Preview image: hidden until a photo is chosen. -->
+</div> <!-- End of the photo column. -->
+<div style="flex: 1; min-width: 260px;"> <!-- Text column: grows to fill the rest of the row. -->
+<label for="concern-input"><strong>What is your skin doing lately?</strong></label> <!-- Concern label. -->
+<textarea id="concern-input" placeholder="Example: My skin feels dry and tight, my cheeks flush red easily, and I keep getting small breakouts on my chin.">My skin feels dry and tight by midday, my cheeks flush red easily, and dull patches make makeup sit badly.</textarea> <!-- Concern textarea: prefilled with an example so the demo runs in one click. -->
+</div> <!-- End of the text column. -->
+</div> <!-- End of the row. -->
+<p><button class="primary" id="analyze-btn" type="button">Analyze my skin</button> <span class="notice" id="analyze-status"></span></p> <!-- Analyze row: the primary action plus a status line for progress and errors. -->
+</section> <!-- End of step 1. -->
+<section class="card hidden" id="step-analysis"> <!-- Step 2 card: the analysis results, hidden until they exist. -->
+<h2><span class="step-num">2</span>Your skin analysis</h2> <!-- Step 2 heading. -->
+<p class="hint" id="analysis-source"></p> <!-- Analysis source line: JavaScript states plainly whether this was the live API or SAMPLE data. -->
+<p class="overall" id="analysis-explanation"></p> <!-- Explanation: the agent's one-paragraph summary. -->
+<div class="scores" id="score-list"></div> <!-- Score list: JavaScript renders one bar per concern here. -->
+</section> <!-- End of step 2. -->
+<section class="card hidden" id="step-routine"> <!-- Step 3 card: the built routine, hidden until it exists. -->
+<h2><span class="step-num">3</span>Your routine</h2> <!-- Step 3 heading. -->
+<p class="hint">Built from your weakest scores first. Tinted finishers include virtual try-on, so you can preview a shade on your own photo before buying.</p> <!-- Step 3 instructions. -->
+<div class="slots" id="slot-list"></div> <!-- Slot list: JavaScript renders the AM / PM / Finish product cards here. -->
+<div class="total"><span id="total-label">Basket total</span><strong id="total-value"></strong></div> <!-- Total row: the honest shelf total of the unique products. -->
+<p class="notice" id="tryon-message"></p> <!-- Try-on message: the server answers try-on clicks here, honestly labeled. -->
+</section> <!-- End of step 3. -->
+<section class="card hidden" id="step-refine"> <!-- Step 4 card: the refine-on-feedback round, hidden until a routine exists. -->
+<h2><span class="step-num">4</span>Tell the agent what to change</h2> <!-- Step 4 heading. -->
+<p class="hint">This is the loop, not a form: push back and the routine rebuilds. Try the shortcuts or write your own.</p> <!-- Step 4 instructions. -->
+<div class="chips"> <!-- Chips: one-tap feedback shortcuts. -->
+<button class="chip" type="button" data-feedback="Everything must be fragrance-free, my skin is sensitive">Fragrance-free, please</button> <!-- Chip: sensitive-skin shortcut. -->
+<button class="chip" type="button" data-feedback="This is too expensive — keep every product under $20 each">Under $20 each</button> <!-- Chip: budget shortcut with an explicit ceiling. -->
+<button class="chip" type="button" data-feedback="Make it simpler, fewer steps">Simpler — fewer steps</button> <!-- Chip: minimal-routine shortcut. -->
+<button class="chip" type="button" data-feedback="No makeup or tinted products">No makeup</button> <!-- Chip: makeup opt-out shortcut. -->
+</div> <!-- End of the chips. -->
+<input type="text" id="feedback-input" placeholder="Example: too expensive, and everything must be fragrance-free"> <!-- Feedback input: free-text pushback for the agent. -->
+<p><button class="primary" id="refine-btn" type="button">Refine my routine</button> <span class="notice" id="refine-status"></span></p> <!-- Refine row: the action plus its status line. -->
+<ul class="changes" id="change-list"></ul> <!-- Change list: JavaScript lists exactly what the last refine changed. -->
+</section> <!-- End of step 4. -->
+<footer> <!-- Footer: small print. -->
+SkinSense Agent — a prototype for the YouCam API Skin AI &amp; eCommerce VTO Hackathon. Product cards are a demo catalog with invented brands; analysis is either the real YouCam Skin AI (labeled LIVE) or clearly labeled SAMPLE data. <!-- Footer text: the honesty disclaimer in one line. -->
+</footer> <!-- End of the footer. -->
+</div> <!-- End of the wrap. -->
+<script> // Script block: all page behavior lives here, no external libraries.
+// Keep the session state the server returns, so refine rounds can send it back verbatim.
+let sessionState = null; // Set by the analyze response; replaced by every refine response.
+// Keep the chosen photo as a data URL, ready to send with the analyze request.
+let photoDataUrl = ""; // Empty string means the text-only path.
+// Cache the elements the script touches most, by their ids.
+const badgeEl = document.getElementById("mode-badge"); // The mode pill in the hero.
+const bannerEl = document.getElementById("sample-banner"); // The SAMPLE warning strip.
+const analyzeBtn = document.getElementById("analyze-btn"); // The step 1 primary button.
+const analyzeStatus = document.getElementById("analyze-status"); // The step 1 status line.
+const refineBtn = document.getElementById("refine-btn"); // The step 4 primary button.
+const refineStatus = document.getElementById("refine-status"); // The step 4 status line.
+// Start the tiny HTML escaper that keeps user text from breaking the markup.
+function escapeHtml(text) { // Define escapeHtml with the raw string to sanitize.
+  // Replace the five characters that matter in HTML, ampersand first so escapes are not double-escaped.
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); // One chained pass over the string.
+} // End of escapeHtml.
+// Start the helper that asks the server which mode this deployment is in.
+async function loadStatus() { // Define loadStatus, called once on page load.
+  // Guard the fetch so a dead server leaves the default badge text instead of an exception.
+  try { // Begin the guarded fetch block.
+    // Request the status snapshot from our own server (never from Perfect Corp directly).
+    const response = await fetch("/api/status"); // The key stays server-side; this returns booleans only.
+    // Parse the JSON body into an object.
+    const status = await response.json(); // Fields: youcam_configured, mode, api_base.
+    // Branch on whether a real key is configured.
+    if (status.youcam_configured) { // A key exists, so photo analyses can be live.
+      // Label the badge as live-ready and paint it green.
+      badgeEl.textContent = "Live-ready · YouCam Skin AI connected"; // Honest wording: ready, because each request still needs a photo.
+      // Apply the green badge styling.
+      badgeEl.classList.add("live"); // The .live variant defined in the CSS.
+    } else { // No key in this environment.
+      // Label the badge as sample mode.
+      badgeEl.textContent = "SAMPLE mode · add YOUCAM_API_KEY for live analysis"; // The badge itself carries the honesty label.
+    } // End of the mode branch.
+  } catch (error) { // The status call itself failed.
+    // Say so on the badge instead of guessing a mode.
+    badgeEl.textContent = "Mode unknown · server unreachable"; // Honest fallback text.
+  } // End of the guarded fetch block.
+} // End of loadStatus.
+// Start the photo picker handler that previews the image and stores its data URL.
+document.getElementById("photo-input").addEventListener("change", function (event) { // Listen for a file choice on the photo input.
+  // Read the first chosen file, if any.
+  const file = event.target.files[0]; // The input accepts a single photo.
+  // Ignore an emptied picker (the user cancelled).
+  if (!file) { // Nothing was chosen.
+    // Clear the stored photo and stop.
+    photoDataUrl = ""; // Back to the text-only path.
+    // Hide the preview again.
+    document.getElementById("photo-preview").style.display = "none"; // No photo, no preview.
+    // Leave the handler.
+    return; // Nothing else to do.
+  } // End of the empty-picker branch.
+  // Create a reader that converts the file into a data URL.
+  const reader = new FileReader(); // The browser API for local file reads.
+  // When the read finishes, store the data URL and show the preview.
+  reader.onload = function () { // The load event carries the finished data URL.
+    // Store the data URL for the analyze request.
+    photoDataUrl = reader.result; // Sent to our server only, which forwards it to YouCam in live mode.
+    // Point the preview image at the same data URL.
+    const preview = document.getElementById("photo-preview"); // The preview element beside the input.
+    // Set the preview source to the chosen photo.
+    preview.src = photoDataUrl; // The user sees exactly what will be analyzed.
+    // Reveal the preview.
+    preview.style.display = "block"; // The CSS hides it until now.
+  }; // End of the reader load handler.
+  // Start reading the file as a data URL.
+  reader.readAsDataURL(file); // Async; the load handler above finishes the job.
+}); // End of the photo picker handler.
+// Start the renderer that paints the analysis section from a result object.
+function renderAnalysis(result) { // Define renderAnalysis with the /api/analyze response.
+  // Show or hide the SAMPLE banner based on the mode the server reported.
+  if (result.mode === "sample") { // Sample scores are on screen.
+    // Put the server's own notice text into the banner so the reason is never vague.
+    bannerEl.textContent = "⚠ SAMPLE DATA — " + (result.notice || "These scores are illustrative, not a real measurement."); // The notice explains why it is a sample.
+    // Reveal the banner.
+    bannerEl.classList.add("show"); // The .show class flips display on.
+  } else { // A live result is on screen.
+    // Hide the banner; the source line below carries the live label instead.
+    bannerEl.classList.remove("show"); // No warning needed for a real measurement.
+  } // End of the banner branch.
+  // State the analysis source in plain words under the step 2 heading.
+  document.getElementById("analysis-source").textContent = result.mode === "live" ? "Source: LIVE YouCam Skin AI analysis of your photo." : "Source: SAMPLE data (keyword-based preview, not a measurement)."; // Never ambiguous about provenance.
+  // Paint the agent's one-paragraph explanation.
+  document.getElementById("analysis-explanation").textContent = result.explanation; // Weakest areas plus the overall score.
+  // Build the set of priority concern names so their bars can be flagged.
+  const weakTypes = new Set(result.priorities.map(function (item) { return item.type; })); // The three weakest concerns.
+  // Sort a copy of the concerns weakest first for display.
+  const ordered = result.analysis.concerns.slice().sort(function (a, b) { return (a.ui_score || 0) - (b.ui_score || 0); }); // Weakest at the top, where the eye lands first.
+  // Build one score line per concern.
+  const lines = ordered.map(function (concern) { // Map each concern to its HTML line.
+    // Flag the line when the concern is one of the three priorities.
+    const weakClass = weakTypes.has(concern.type) ? " weak" : ""; // Terracotta fill for targeted concerns.
+    // Compose the line: label, animated bar, and the numeric score.
+    return '<div class="score-line' + weakClass + '"><span class="label">' + escapeHtml(concern.type) + '</span><span class="bar"><span class="fill" style="width:' + (concern.ui_score || 0) + '%"></span></span><span class="value">' + (concern.ui_score == null ? "—" : concern.ui_score) + "</span></div>"; // The fill width is the score itself.
+  }); // End of the concern mapping.
+  // Paint all score lines into the list container.
+  document.getElementById("score-list").innerHTML = lines.join(""); // One innerHTML write for the whole grid.
+  // Reveal the analysis section.
+  document.getElementById("step-analysis").classList.remove("hidden"); // The .hidden utility class comes off.
+} // End of renderAnalysis.
+// Start the renderer that paints routine slots as product cards.
+function renderRoutine(routine) { // Define renderRoutine with the routine object from analyze or refine.
+  // Build one card per slot.
+  const cards = routine.slots.map(function (slot) { // Map each slot to its card HTML.
+    // Shorthand for the product riding in this slot.
+    const product = slot.product; // Name, brand, blurb, price, and the VTO flag.
+    // Build the try-on button only for products that carry a virtual try-on effect.
+    const tryOn = product.vto ? '<button class="ghost" type="button" data-tryon="' + escapeHtml(product.id) + '">Try it on</button>' : ""; // Non-tint products get no button.
+    // Compose the card: eyebrow, name, brand, blurb, the agent's reason, and the price row.
+    return '<div class="slot"><span class="when">' + escapeHtml(slot.when) + " · " + escapeHtml(slot.step) + '</span><h3>' + escapeHtml(product.name) + '</h3><span class="brand">' + escapeHtml(product.brand) + '</span><p>' + escapeHtml(product.blurb) + '</p><p class="why">' + escapeHtml(slot.why) + '</p><div class="meta"><span class="price">$' + Number(product.price).toFixed(2) + "</span>" + tryOn + "</div></div>"; // The whole card in one template string.
+  }); // End of the slot mapping.
+  // Paint all cards into the slot grid.
+  document.getElementById("slot-list").innerHTML = cards.join(""); // One write for the whole routine.
+  // Label and paint the basket total for the unique products.
+  document.getElementById("total-label").textContent = "Basket total · " + routine.item_count + " products"; // The count keeps the total honest about shared AM/PM items.
+  // Paint the total amount itself.
+  document.getElementById("total-value").textContent = "$" + Number(routine.total_price).toFixed(2); // Two decimals, like a shelf tag.
+  // Reveal the routine and refine sections together.
+  document.getElementById("step-routine").classList.remove("hidden"); // The routine appears.
+  // The refine step only makes sense once a routine exists.
+  document.getElementById("step-refine").classList.remove("hidden"); // The loop's second half appears.
+  // Wire every freshly rendered try-on button to the try-on handler.
+  document.querySelectorAll("[data-tryon]").forEach(function (button) { // Buttons are re-created on every render, so wiring happens here.
+    // Attach the click handler that asks the server about this product's try-on.
+    button.addEventListener("click", function () { startTryOn(button.getAttribute("data-tryon")); }); // The product id rides in the data attribute.
+  }); // End of the button wiring.
+} // End of renderRoutine.
+// Start the try-on handler that asks our server about one product's virtual try-on.
+async function startTryOn(productId) { // Define startTryOn with the product identifier from the card.
+  // Grab the message line under the routine where the answer will land.
+  const messageEl = document.getElementById("tryon-message"); // One shared line keeps the layout calm.
+  // Show a working note while the request runs.
+  messageEl.textContent = "Checking virtual try-on…"; // Immediate feedback for the click.
+  // Guard the fetch so failures read as text, not exceptions.
+  try { // Begin the guarded fetch block.
+    // POST the try-on intent to our server, which owns the honest status answer.
+    const response = await fetch("/api/tryon", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_id: productId }) }); // The server validates the product id.
+    // Parse the JSON answer either way.
+    const payload = await response.json(); // Success carries a message; errors carry an error field.
+    // Paint whichever honest text came back.
+    messageEl.textContent = payload.message || payload.error || "Try-on is unavailable right now."; // The server's wording wins.
+  } catch (error) { // The request itself failed.
+    // Say so plainly.
+    messageEl.textContent = "Try-on check failed: the server did not answer."; // No fake success, ever.
+  } // End of the guarded fetch block.
+} // End of startTryOn.
+// Start the analyze click handler that runs the first half of the loop.
+analyzeBtn.addEventListener("click", async function () { // Listen for the Analyze button.
+  // Disable the button while the request runs so double-clicks cannot double-spend API units.
+  analyzeBtn.disabled = true; // Live analyses consume real units; one click, one task.
+  // Show the working state, naming the live wait honestly when a photo is attached.
+  analyzeStatus.textContent = photoDataUrl ? "Working — a live analysis can take up to a minute…" : "Working…"; // Sets expectations for the poll.
+  // Guard the fetch so failures land in the status line.
+  try { // Begin the guarded fetch block.
+    // Read the concern text from the textarea.
+    const concern = document.getElementById("concern-input").value; // Free text, may be empty.
+    // POST the analyze request with the text and the optional photo.
+    const response = await fetch("/api/analyze", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ concern: concern, photo_data_url: photoDataUrl }) }); // Our server decides live vs sample.
+    // Parse the JSON answer.
+    const result = await response.json(); // Errors arrive as {error: "..."} with a 400.
+    // Branch on an error payload.
+    if (result.error) { // The server rejected the input.
+      // Show the server's own message and stop.
+      analyzeStatus.textContent = "Could not analyze: " + result.error; // Plain failure text.
+      // Leave the handler without rendering anything.
+      return; // The finally block re-enables the button.
+    } // End of the error branch.
+    // Store the session state for later refine rounds.
+    sessionState = result.state; // Analysis plus constraints, exactly as the server sent them.
+    // Paint the analysis and the routine.
+    renderAnalysis(result); // Step 2 appears.
+    // The routine rides in the same response.
+    renderRoutine(result.routine); // Steps 3 and 4 appear.
+    // Clear the status line and any stale change notes from a previous run.
+    analyzeStatus.textContent = ""; // Clean state for the next interaction.
+    // A fresh analysis resets the refine change list.
+    document.getElementById("change-list").innerHTML = ""; // No leftovers from an earlier session.
+    // Scroll the results into view so the user sees the payoff.
+    document.getElementById("step-analysis").scrollIntoView({ behavior: "smooth" }); // Gentle scroll, not a jump.
+  } catch (error) { // The request itself failed.
+    // Say so plainly in the status line.
+    analyzeStatus.textContent = "Analyze failed: the server did not answer."; // Honest failure text.
+  } finally { // Always re-enable the button.
+    // Re-enable the Analyze button for the next run.
+    analyzeBtn.disabled = false; // The loop can run again.
+  } // End of the guarded fetch block.
+}); // End of the analyze handler.
+// Start the chip wiring that fills the feedback box with one tap.
+document.querySelectorAll(".chip").forEach(function (chip) { // Every shortcut chip gets the same behavior.
+  // On click, copy the chip's feedback phrase into the input and focus it.
+  chip.addEventListener("click", function () { // The tap itself.
+    // Fill the input from the chip's data attribute.
+    document.getElementById("feedback-input").value = chip.getAttribute("data-feedback"); // The user can still edit before sending.
+    // Focus the input so the next step is obvious.
+    document.getElementById("feedback-input").focus(); // Keyboard lands where the action is.
+  }); // End of the chip click handler.
+}); // End of the chip wiring.
+// Start the refine click handler that runs the feedback half of the loop.
+refineBtn.addEventListener("click", async function () { // Listen for the Refine button.
+  // Refine needs a stored session; without one there is nothing to refine.
+  if (!sessionState) { // Analyze has not run yet in this page view.
+    // Tell the user to analyze first.
+    refineStatus.textContent = "Run an analysis first — refine adjusts an existing routine."; // Honest ordering hint.
+    // Stop here.
+    return; // No request is sent.
+  } // End of the session check.
+  // Read the feedback text.
+  const feedback = document.getElementById("feedback-input").value; // May be empty; the server answers honestly even then.
+  // Disable the button while the refine runs.
+  refineBtn.disabled = true; // Prevents overlapping refines.
+  // Show the working state.
+  refineStatus.textContent = "Refining…"; // Brief and plain.
+  // Guard the fetch so failures land in the status line.
+  try { // Begin the guarded fetch block.
+    // POST the feedback plus the stored state to the refine route.
+    const response = await fetch("/api/refine", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ feedback: feedback, state: sessionState }) }); // Constraints accumulate server-side from the state.
+    // Parse the JSON answer.
+    const result = await response.json(); // Carries the new routine, change notes, and new state.
+    // Branch on an error payload.
+    if (result.error) { // The server rejected the request.
+      // Show the message and stop.
+      refineStatus.textContent = "Could not refine: " + result.error; // Plain failure text.
+      // Leave without touching the routine.
+      return; // The finally block re-enables the button.
+    } // End of the error branch.
+    // Replace the stored state with the refined one.
+    sessionState = result.state; // The next refine builds on this one.
+    // Repaint the routine with the refined picks.
+    renderRoutine(result.routine); // Swaps become visible immediately.
+    // List exactly what changed, in the server's own words.
+    document.getElementById("change-list").innerHTML = result.changes.map(function (change) { return "<li>" + escapeHtml(change) + "</li>"; }).join(""); // One bullet per change.
+    // Clear the working note.
+    refineStatus.textContent = ""; // Done.
+  } catch (error) { // The request itself failed.
+    // Say so plainly.
+    refineStatus.textContent = "Refine failed: the server did not answer."; // Honest failure text.
+  } finally { // Always re-enable the button.
+    // Re-enable the Refine button for the next round.
+    refineBtn.disabled = false; // The loop can continue.
+  } // End of the guarded fetch block.
+}); // End of the refine handler.
+// Kick off the mode check as soon as the page loads.
+loadStatus(); // The badge settles before the user clicks anything.
+</script> <!-- End of the script block. -->
+</body> <!-- End of the body. -->
+</html> <!-- End of the document. -->

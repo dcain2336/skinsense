@@ -1,0 +1,5 @@
+# Never commit a real YouCam API key.
+.env
+# Python bytecode caches are build noise.
+__pycache__/
+*.pyc
